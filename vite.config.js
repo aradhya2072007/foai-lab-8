@@ -9,7 +9,10 @@ export default defineConfig({
       '/hf': {
         target: 'https://router.huggingface.co',
         changeOrigin: true,
+        secure: false,
         rewrite: (path) => path.replace(/^\/hf/, '/hf-inference'),
+        timeout: 60000, // 60 seconds
+        proxyTimeout: 60000,
       },
     },
   },

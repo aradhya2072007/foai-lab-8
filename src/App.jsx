@@ -12,6 +12,11 @@ function App() {
   const handleGenerate = async () => {
     if (!prompt.trim() || isLoading) return
 
+    if (!HF_TOKEN || HF_TOKEN === 'hf_your_token_here') {
+      setError('Hugging Face API token is missing. Please set VITE_HF_TOKEN in your environment variables.')
+      return
+    }
+
     setIsLoading(true)
     setError('')
 
@@ -35,16 +40,22 @@ function App() {
       )
 
       if (!response.ok) {
-        const errBody = await response.text()
+        const contentType = response.headers.get('content-type')
         let message = `Request failed (${response.status})`
+        
         try {
-          const parsed = JSON.parse(errBody)
-          if (parsed.error) message = parsed.error
-          if (parsed.estimated_time) {
-            message += ` — estimated wait: ${Math.ceil(parsed.estimated_time)}s. Try again shortly.`
+          if (contentType && contentType.includes('application/json')) {
+            const parsed = await response.json()
+            if (parsed.error) message = parsed.error
+            if (parsed.estimated_time) {
+              message += ` — estimated wait: ${Math.ceil(parsed.estimated_time)}s. Try again shortly.`
+            }
+          } else {
+            const text = await response.text()
+            if (text && text.length < 200) message += `: ${text}`
           }
-        } catch {
-          // plain-text error, use default message
+        } catch (e) {
+          // Fallback to default message
         }
         throw new Error(message)
       }

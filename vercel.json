@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/hf/(.*)",
+      "destination": "https://router.huggingface.co/hf-inference/$1"
+    }
+  ]
+}
