@@ -8,6 +8,36 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [imageUrl, setImageUrl] = useState('')
   const [error, setError] = useState('')
+  const [history, setHistory] = useState(() => {
+    const saved = localStorage.getItem('ai_generation_history')
+    return saved ? JSON.parse(saved) : []
+  })
+
+  // Save history to localStorage
+  const addToHistory = (url, promptText) => {
+    const newEntry = { url, prompt: promptText, timestamp: Date.now() }
+    const updatedHistory = [newEntry, ...history].slice(0, 8) // Keep last 8
+    setHistory(updatedHistory)
+    localStorage.getItem('ai_generation_history')
+    localStorage.setItem('ai_generation_history', JSON.stringify(updatedHistory))
+  }
+
+  const handleDownload = async (url, promptText) => {
+    try {
+      const response = await fetch(url)
+      const blob = await response.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = `ai-gen-${promptText.slice(0, 20).replace(/\s+/g, '-')}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(blobUrl)
+    } catch (err) {
+      setError('Failed to download image.')
+    }
+  }
 
   const handleGenerate = async () => {
     if (!prompt.trim() || isLoading) return
@@ -63,6 +93,7 @@ function App() {
       const blob = await response.blob()
       const url = URL.createObjectURL(blob)
       setImageUrl(url)
+      addToHistory(url, prompt.trim())
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.')
     } finally {
@@ -167,6 +198,17 @@ function App() {
                 className="generated-image"
                 onError={() => setError('Failed to load the image.')}
               />
+              <button 
+                className="download-btn"
+                onClick={() => handleDownload(imageUrl, prompt)}
+                title="Download image"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              </button>
             </div>
             <div className="image-meta">
               <span className="meta-badge">SDXL 1.0</span>
@@ -176,10 +218,35 @@ function App() {
             </div>
           </div>
         )}
+
+        {/* Recent Creations */}
+        {history.length > 0 && (
+          <div className="history-section">
+            <h2 className="section-title">Recent Creations</h2>
+            <div className="history-grid">
+              {history.map((item, index) => (
+                <div key={item.timestamp} className="history-item" onClick={() => setImageUrl(item.url)}>
+                  <img src={item.url} alt={item.prompt} loading="lazy" />
+                  <div className="history-overlay">
+                    <button 
+                      className="history-download" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(item.url, item.prompt);
+                      }}
+                    >
+                      ↓
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <footer className="footer">
-        <span>Built with React + Vite</span>
+        <span>Built with React + Vite • Using SDXL 1.0</span>
       </footer>
     </div>
   )
