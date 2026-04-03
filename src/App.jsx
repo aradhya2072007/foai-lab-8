@@ -43,7 +43,8 @@ function App() {
     if (!prompt.trim() || isLoading) return
 
     if (!HF_TOKEN || HF_TOKEN === 'hf_your_token_here') {
-      setError('Hugging Face API token is missing. Please set VITE_HF_TOKEN in your environment variables.')
+      const availableEnvs = Object.keys(import.meta.env).filter(key => key.startsWith('VITE_')).join(', ')
+      setError(`Hugging Face API token is missing. Found VITE vars: [${availableEnvs || 'None'}]. Please set VITE_HF_TOKEN in your Vercel Dashboard and REDEPLOY.`)
       return
     }
 
